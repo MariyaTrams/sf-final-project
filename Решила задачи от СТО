@@ -1,0 +1,59 @@
+Дополнительное задание 2 (активность пользователей):
+#знаю, что задание выполнено не совсем корректно в части обработки данных в Python, прикладываю для номинальной оценки информации
+
+SQL-запрос:
+
+-- активность по дням недели
+with dw as (
+select 1 as d
+union all
+select 2
+union all
+select 3
+union all
+select 4
+union all
+select 5
+union all
+select 6
+union all
+select 7
+)
+select dw.d 
+      ,count(u.entry_at) as all_entry_cnt
+      ,count(distinct u.user_id) as unq_user_cnt
+  from dw left join userentry u on dw.d = extract(dow from u.entry_at)
+ group by dw.d
+
+-- активность по часам
+with recursive tm as ( 
+select 0 as h
+union all
+select h+1 
+  from tm 
+ where h < 23
+)
+select h
+      ,count(created_at) as all_act_cnt
+      ,count(distinct user_id) as unq_user_cnt
+  from tm 
+       left join (select created_at 
+				        ,user_id
+				    from teststart 
+				  union all
+				  select created_at 
+				        ,user_id
+				    from coderun) a
+		 on tm.h = to_char(created_at,'hh24')::int
+ group by tm.h
+
+Python-запрос:
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+df = pd.read_csv(r'C:\Users\USER\Desktop\diplom\time_of_activity.csv')
+df.plot(x = 'unq_user_cnt', y = 'h', kind = 'line')
+df = pd.read_csv(r'C:\Users\USER\Desktop\diplom\day_of_activity.csv')
+df.plot(x = 'unq_user_cnt', y = 'd', kind = 'scatter', color = 'purple')
+
+Вывод: максимальная активность наблюдается между 10.00 и 15.00 часами дня, по дням недели распределение достаточно равномерное от пн к пт, в сб ожидаемый спад, в вскр активность минимальная. Наиболее целесообразно проводить релизы в дневные часы, оптимальный день для этого – чт, однако отклонение активности и в другие будние дни небольшое относительно четверга.
